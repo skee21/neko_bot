@@ -12,6 +12,7 @@ client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
 db = replit.db
+db["players"] = []
 
 @client.event
 async def on_ready():
@@ -22,13 +23,22 @@ async def on_ready():
 async def hello(interaction):
   await interaction.response.send_message("Hello!")
 
+@tree.command(name = "database", description= "devs only command")
+async def database(intereaction):
+  if str(intereaction.user.id) == 1077648874002460672:
+    users = db["players"]
+    await intereaction.response.send_message(users)
+  else:
+    await intereaction.response.send_message("know your place hooman.")
+  
+
 @tree.command(name= "register", description= "Neko will remember you <3")
 async def register(interaction):
-  userid = interaction.user.id()
-  if userid in db:
+  userid = str(interaction.user.id)
+  if userid in db["players"]:
     await interaction.response.send_message("Got short term memory loss?")
   else:
-    db["pla"] = db.get("registered_users", []) + [userid]
+    db["players"] = userid
     await interaction.response.send_message("you are registered now, yayy!")
 
 keep_alive()
