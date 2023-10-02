@@ -19,6 +19,7 @@ db["players"] = []
 
 @client.event
 async def on_ready():
+  await client.change_presence(activity=discord.Game(name="with your mom"))
   await tree.sync()
   print("Ready!")
 
@@ -62,6 +63,26 @@ async def avatar(interaction, user: Optional[discord.Member] = None):
     embed = discord.Embed(title=f"pfp of {user.display_name}")
     embed.set_image(url=user.display_avatar)
     await interaction.response.send_message(embed=embed)
+
+@tree.command(name="profile")
+async def profile(interaction, user:discord.Member):
+  user_id = str(user.id)
+  members = db.get("members", {})
+  user_data = members.get(user_id, {})
+  xp = user_data.get("xp", 1) 
+  level = xp // 100
+  army_space = user_data.get("army_space", 30)
+  
+
+  embed = discord.Embed(title=f"Profile of {user.display_name}", color=0xe91e63)
+  embed.set_thumbnail(url=user.display_avatar)
+  embed.add_field(name="Level:", value=level, inline=True)
+  embed.add_field(name="XP:", value=f"{xp}/100", inline=True)
+  embed.add_field(name="Clan:", value="in dev", inline=False)
+  embed.add_field(name="Army space:", value=army_space)
+  
+  await interaction.response.send_message(embed=embed)
+
 
 keep_alive()
 
