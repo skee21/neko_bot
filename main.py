@@ -5,7 +5,7 @@ import os
 from discord import interactions
 from keep_alive import keep_alive
 from discord import Member
-import replit
+import mysql.connector as ms
 
 intents = discord.Intents.default()
 intents.members = True
@@ -14,7 +14,11 @@ intents.presences = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
-db = replit.db
+psd = 'X9p37jz3j!9qmtb'
+hst = 'sql.freedb.tech'
+myd = ms.connect(host=hst, database='freedb_players', user='freedb_skeee', password=psd)
+mydb = myd.cursor()
+mydb.execute("CREATE TABLE users(uid VARCHAR(20))")
 
 @client.event
 async def on_ready():
@@ -29,29 +33,33 @@ async def hello(interaction):
 @tree.command(name = "database", description= "devs only command")
 async def database(interaction):
   if interaction.user.id == 1077648874002460672:
-    users = dict(db)
-    await interaction.response.send_message(users)
+    mydb.execute("SELECT UID FROM USERS")
+    users = mydb.fetchall()
+    user_list = ", ".join(str(user[0]) for user in users)
+    await interaction.response.send_message(f"```Registered users: {user_list}```")
   else:
-    await interaction.response.send_message("know your place hooman.")
+    await interaction.response.send_message(":middle_finger:")
 
 @tree.command(name= "reset", description= "thanos snap lol")
 async def reset(interaction):
   if interaction.user.id == 1077648874002460672:
-    del db[]
+    mydb.execute("DROP TABLE USERS")
+    await interaction.response.send_message("reset success.")
   else:
-    await interaction.response.send_message("know your place hooman.")
+    await interaction.response.send_message(":middle_finger:")
 
 @tree.command(name= "register", description= "Neko will remember you <3")
 async def register(interaction):
   userid = str(interaction.user.id)
-  registered_users = db.get() 
+  mydb.execute("SELECT * FROM USERS WHERE UID = %s", (userid,))
+  result = mydb.fetchone()
   
-  if userid in registered_users:
-    await interaction.response.send_message("Got short term memory loss?")
+  if result:
+    await interaction.response.send_message("You are already registered!")
   else:
-    registered_users.append(userid)
-    db[] = registered_users 
-    await interaction.response.send_message("You are registered now, yayy!")
+    mydb.execute("INSERT INTO USERS (UID) VALUES (%s)", (userid,))
+    myd.commit()
+    await interaction.response.send_message("Yayy, I will remember you now UwU")
 
 @tree.command(name="avatar", description="shows avatar")
 async def avatar(interaction, user: Optional[Member] = None):
@@ -65,7 +73,7 @@ async def avatar(interaction, user: Optional[Member] = None):
     embed.set_image(url=user.display_avatar)
     await interaction.response.send_message(embed=embed)
 
-@tree.command(name="profile")
+'''@tree.command(name="profile")
 async def profile(interaction, user: Optional[Member] = None):
   if user is None:
     user = interaction.user
@@ -88,7 +96,7 @@ async def profile(interaction, user: Optional[Member] = None):
   embed.add_field(name="Clan:", value="in dev", inline=False)
   embed.add_field(name="Army space:", value=army_space)
 
-  await interaction.response.send_message(embed=embed)
+  await interaction.response.send_message(embed=embed)'''
 
 keep_alive()
 
