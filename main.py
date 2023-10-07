@@ -15,8 +15,8 @@ intents.presences = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
-psd = 'X9p37jz3j!9qmtb'
-hst = 'sql.freedb.tech'
+psd = os.environ['psd']
+hst = os.environ['hst']
 myd = ms.connect(host=hst, database='freedb_players', user='freedb_skeee', password=psd)
 mydb = myd.cursor()
 #mydb.execute("CREATE TABLE users(uid VARCHAR(20))")
