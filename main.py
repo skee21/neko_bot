@@ -37,6 +37,49 @@ async def on_ready():
 async def hello(interaction):
   await interaction.response.send_message("Hello!")
 
+@tree.command(name="kick", description="Kicks a member")
+async def kick(interaction, user: Member, reason: Optional[str] = "No reason provided"):
+  userid = interaction.user.id
+  memberid = user.id
+
+  if interaction.guild.me.guild_permissions.kick_members:
+    if interaction.user.guild_permissions.kick_members:
+      if user.guild_permissions.kick_members:
+        await interaction.response.send_message(f"{user.mention} has been kicked successfully")
+        await user.kick(reason=reason)
+      else:
+        await interaction.response.send_message(":middle_finger:")
+    else:
+      await interaction.response.send_message(":middle_finger:")
+  else:
+    await interaction.response.send_message("gimme the necessary permission first dummies.")
+
+@tree.command(name="mute", description="mutes a member")
+async def mute(interaction, user: Member, duration: Optional[int] = None):
+  if interaction.guild.me.guild_permissions.mute_members:
+    if interaction.user.guild_permissions.mute_members:
+      if user.guild_permissions.mute_members:
+        user.edit(mute=True)
+        if duration:
+          await asyncio.sleep(duration)
+          user.edit(mute=False)
+      else:
+        await interaction.response.send_message(":middle_finger:")
+    else:
+      interaction.response.send_message("middle_finger:")
+  else:
+    interaction.response.send_message("gimme the necessary permissions dummy!")
+
+@tree.command(name="unmute", description="unmutes a member")
+async def mute(interaction, user: Member):
+  if interaction.guild.me.guild_permissions.mute_members:
+    if interaction.user.guild_permissions.mute_members:
+      user.edit(mute=False)
+    else:
+      interaction.response.send_message("middle_finger:")
+  else:
+    interaction.response.send_message("gimme the necessary permissions dummy!")
+
 @tree.command(name = "database", description= "devs only command")
 async def database(interaction):
   if interaction.user.id == 1077648874002460672:
@@ -62,9 +105,13 @@ async def register(interaction):
   result = mydb.fetchone()
   
   if result:
-    await interaction.response.send_message("You are already registered!")
+    await interaction.response.send_message("Got a short term memory loss?")
   else:
-    mydb.execute("INSERT INTO users (UID) VALUES (%s)", (userid,))
+    def_level = 1
+    def_army = 30
+    def_exp = 1
+    mydb.execute("INSERT INTO users (UID, level, exp, army_space) VALUES (%s, %s, %s, %s)",
+    (userid, def_level, def_exp, def_army))
     myd.commit()
     await interaction.response.send_message("Yayy, I will remember you now UwU")
 
@@ -80,30 +127,27 @@ async def avatar(interaction, user: Optional[Member] = None):
     embed.set_image(url=user.display_avatar)
     await interaction.response.send_message(embed=embed)
 
-'''@tree.command(name="profile")
+@tree.command(name="profile")
 async def profile(interaction, user: Optional[Member] = None):
   if user is None:
     user = interaction.user
-  
-  user_id = str(user.id)
-  print(members)
 
-  user_data = db.get(user_id, None)
-  if user_data is None:
-    await interaction.response.send_message("User is not registered probably.")
-    return
+  userid = str(user.id)
+  mydb.execute("SELECT * FROM users WHERE UID = %s", (userid,))
+  result = mydb.fetchone()
 
-  xp = user_data.get("xp", 1) 
-  army_space = user_data.get("army_space", 30)
+  if result:
+    uid, level, army_space, exp = result
+    embed = discord.Embed(title=f"Profile of {user.display_name}", color=0xe91e63)
+    embed.set_thumbnail(url=user.display_avatar)
+    embed.add_field(name="Level:", value=level, inline=True)
+    embed.add_field(name="XP:", value=f"{exp}/100", inline=True)
+    embed.add_field(name="Army Space:", value=army_space, inline=False)
+    embed.add_field(name="Clan:", value="coming soon", inline=False)
+    await interaction.response.send_message(embed=embed)
+  else:
+    await interaction.response.send_message("User is not registered.")
 
-  embed = discord.Embed(title=f"Profile of {user.display_name}", color=0xe91e63)
-  embed.set_thumbnail(url=user.display_avatar)
-  embed.add_field(name="Level:", value=1, inline=True)
-  embed.add_field(name="XP:", value=f"{xp}/100", inline=True)
-  embed.add_field(name="Clan:", value="in dev", inline=False)
-  embed.add_field(name="Army space:", value=army_space)
-
-  await interaction.response.send_message(embed=embed)'''
 
 keep_alive()
 
