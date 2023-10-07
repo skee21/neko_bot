@@ -6,6 +6,7 @@ from discord import interactions
 from keep_alive import keep_alive
 from discord import Member
 import mysql.connector as ms
+import asyncio
 
 intents = discord.Intents.default()
 intents.members = True
@@ -18,12 +19,18 @@ psd = 'X9p37jz3j!9qmtb'
 hst = 'sql.freedb.tech'
 myd = ms.connect(host=hst, database='freedb_players', user='freedb_skeee', password=psd)
 mydb = myd.cursor()
-mydb.execute("CREATE TABLE users(uid VARCHAR(20))")
+#mydb.execute("CREATE TABLE users(uid VARCHAR(20))")
+
+async def ping_database():
+  while True:
+    await asyncio.sleep(180)
+    myd.ping(reconnect=True)
 
 @client.event
 async def on_ready():
   await client.change_presence(activity=discord.Game(name="with your mom"))
   await tree.sync()
+  client.loop.create_task(ping_database())
   print("Ready!")
 
 @tree.command(name = "hello", description = "says hello")
@@ -33,7 +40,7 @@ async def hello(interaction):
 @tree.command(name = "database", description= "devs only command")
 async def database(interaction):
   if interaction.user.id == 1077648874002460672:
-    mydb.execute("SELECT UID FROM USERS")
+    mydb.execute("SELECT UID FROM users")
     users = mydb.fetchall()
     user_list = ", ".join(str(user[0]) for user in users)
     await interaction.response.send_message(f"```Registered users: {user_list}```")
@@ -43,7 +50,7 @@ async def database(interaction):
 @tree.command(name= "reset", description= "thanos snap lol")
 async def reset(interaction):
   if interaction.user.id == 1077648874002460672:
-    mydb.execute("DROP TABLE USERS")
+    mydb.execute("DROP TABLE users")
     await interaction.response.send_message("reset success.")
   else:
     await interaction.response.send_message(":middle_finger:")
@@ -51,13 +58,13 @@ async def reset(interaction):
 @tree.command(name= "register", description= "Neko will remember you <3")
 async def register(interaction):
   userid = str(interaction.user.id)
-  mydb.execute("SELECT * FROM USERS WHERE UID = %s", (userid,))
+  mydb.execute("SELECT * FROM users WHERE UID = %s", (userid,))
   result = mydb.fetchone()
   
   if result:
     await interaction.response.send_message("You are already registered!")
   else:
-    mydb.execute("INSERT INTO USERS (UID) VALUES (%s)", (userid,))
+    mydb.execute("INSERT INTO users (UID) VALUES (%s)", (userid,))
     myd.commit()
     await interaction.response.send_message("Yayy, I will remember you now UwU")
 
