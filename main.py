@@ -7,6 +7,7 @@ from keep_alive import keep_alive
 from discord import Member
 import mysql.connector as ms
 import asyncio
+import datetime
 
 intents = discord.Intents.default()
 intents.members = True
@@ -37,6 +38,17 @@ async def on_ready():
 async def hello(interaction):
   await interaction.response.send_message("Hello!")
 
+@tree.command(name="contact_dev", description="send a message to skee, the developer of neko")
+async def contact_dev(interaction, msg: str):
+  userid = str(1077648874002460672)
+  user = await client.fetch_user(userid)
+  sender = interaction.user
+  try:
+    await user.send(f"{sender.mention} sent you a message: {msg}")
+    await interaction.response.send_message(f"Message sent to skee: {msg}")
+  except discord.Forbidden:
+    await interaction.response.send_message("I can't send messages to skee atm, try his email, ```shushantskee@proton.me```")
+
 @tree.command(name="kick", description="Kicks a member")
 async def kick(interaction, user: Member, reason: Optional[str] = "No reason provided"):
   userid = interaction.user.id
@@ -44,41 +56,35 @@ async def kick(interaction, user: Member, reason: Optional[str] = "No reason pro
 
   if interaction.guild.me.guild_permissions.kick_members:
     if interaction.user.guild_permissions.kick_members:
-      if user.guild_permissions.kick_members:
-        await interaction.response.send_message(f"{user.mention} has been kicked successfully")
-        await user.kick(reason=reason)
-      else:
-        await interaction.response.send_message(":middle_finger:")
+      await interaction.response.send_message(f"{user.mention} has been kicked successfully")
+      await user.kick(reason=reason)
     else:
-      await interaction.response.send_message(":middle_finger:")
+      await interaction.response.send_message(":middle_finger: :middle_finger:")
   else:
     await interaction.response.send_message("gimme the necessary permission first dummies.")
 
 @tree.command(name="mute", description="mutes a member")
-async def mute(interaction, user: Member, duration: Optional[int] = None):
-  if interaction.guild.me.guild_permissions.mute_members:
-    if interaction.user.guild_permissions.mute_members:
-      if user.guild_permissions.mute_members:
-        user.edit(mute=True)
-        if duration:
-          await asyncio.sleep(duration)
-          user.edit(mute=False)
-      else:
-        await interaction.response.send_message(":middle_finger:")
+async def mute(interaction, user: Member, duration: int = 1440, reason: Optional[str]= "No reason"):
+  if interaction.guild.me.guild_permissions.moderate_members:
+    if interaction.user.guild_permissions.moderate_members:
+      time = datetime.timedelta(minutes=duration)
+      await user.timeout(time, reason=reason)
+      await interaction.response.send_message(f"user muted for {time} successfully.")
     else:
-      interaction.response.send_message("middle_finger:")
+      await interaction.response.send_message(":middle_finger: :middle_finger:")
   else:
     interaction.response.send_message("gimme the necessary permissions dummy!")
 
 @tree.command(name="unmute", description="unmutes a member")
-async def mute(interaction, user: Member):
-  if interaction.guild.me.guild_permissions.mute_members:
-    if interaction.user.guild_permissions.mute_members:
-      user.edit(mute=False)
+async def unmute(interaction, user: Member):
+  if interaction.guild.me.guild_permissions.moderate_members:
+    if interaction.user.guild_permissions.moderate_members:
+      await user.remove_timeout()
+      await interaction.response.send_message(f"{user.mention} has been unmuted successfully!")
     else:
-      interaction.response.send_message("middle_finger:")
+      await interaction.response.send_message(":middle_finger:")
   else:
-    interaction.response.send_message("gimme the necessary permissions dummy!")
+    await interaction.response.send_message("gimme the necessary permissions dummy!")
 
 @tree.command(name = "database", description= "devs only command")
 async def database(interaction):
@@ -127,7 +133,7 @@ async def avatar(interaction, user: Optional[Member] = None):
     embed.set_image(url=user.display_avatar)
     await interaction.response.send_message(embed=embed)
 
-@tree.command(name="profile")
+@tree.command(name="profile", description="shows warrior profile")
 async def profile(interaction, user: Optional[Member] = None):
   if user is None:
     user = interaction.user
