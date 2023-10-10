@@ -158,7 +158,7 @@ async def profile(interaction, user: Optional[Member] = None):
 async def balance(interaction):
   user = interaction.user
   userid = user.id
-  mydb.execute("select * from users where uid = %s", (userid,))
+  mydb.execute("SELECT treasury, wallet FROM users WHERE uid = %s", (userid,))
   result = mydb.fetchone()
 
   if result:
@@ -172,10 +172,10 @@ async def balance(interaction):
     await interaction.response.send_message("you are not registered.")
 
 @tree.command(name="credit", description="withdraw money from treasury")
-async def credit(interaction, amount: int=1):
+async def credit(interaction, amount: int):
   user = interaction.user
   userid = str(user.id)
-  mydb.execute("SELECT * FROM users WHERE uid = %s", (userid,))
+  mydb.execute("SELECT treasury, wallet FROM users WHERE uid = %s", (userid,))
   result = mydb.fetchone()
 
   if result:
@@ -185,32 +185,62 @@ async def credit(interaction, amount: int=1):
       balance_treasury = treasury - amount
       mydb.execute("update users set wallet = %s, treasury = %s where uid = %s", (balance_wallet, balance_treasury, userid))
       myd.commit()
-      await interaction.response.send_message(f"withdrew {amount} from treasury. Remaining balance: ")
-      await balance(interaction)
+      await interaction.response.send_message(f"withdrew {amount} from treasury. Remaining balance:```treasury: {balance_treasury}\n wallet: {balance_wallet}```")
+      #await balance(interaction)
+    else:
+      await interaction.response.send_message("insufficient amount in your treasury")
+  else:
+    await interaction.response.send_message("you are not registered.")
+
+@tree.command(name="debit", description="add money to treasury")
+async def debit(interaction, amount: int):
+  user = interaction.user
+  userid = user.id
+  mydb.execute("SELECT treasury, wallet FROM users WHERE uid = %s", (userid,))
+  result = mydb.fetchone()
+  if result:
+    treasury, wallet = result
+    if wallet >= amount:
+      balance_wallet = wallet - amount
+      balance_treasury = treasury + amount
+      mydb.execute("update users set wallet = %s, treasury = %s where uid = %s", (balance_wallet, balance_treasury, userid))
+      myd.commit()
+      await interaction.response.send_message(f"added {amount} to treasury. Remaining balance:```treasury: {balance_treasury}\n wallet: {balance_wallet}```")
+      #await balance(interaction)
     else:
       await interaction.response.send_message("insufficient amount in your wallet")
   else:
     await interaction.response.send_message("you are not registered.")
 
-@tree.command(name="debit", description="add money to treasury")
-async def debit(interaction, amount: int=1):
-  user = interaction.user
-  userid = user.id
-  mydb.execute("SELECT * FROM users WHERE uid = %s", (userid,))
+async def get_balance_data(user_id):
+  mydb.execute("SELECT treasury, wallet FROM users WHERE uid = %s", (user_id,))
   result = mydb.fetchone()
   if result:
     treasury, wallet = result
-    if treasury >= amount:
-      balance_wallet = wallet - amount
-      balance_treasury = treasury + amount
-      mydb.execute("update users set wallet = %s, treasury = %s where uid = %s", (balance_wallet, balance_treasury, userid))
-      myd.commit()
-      await interaction.response.send_message(f"added {amount} to treasury. Remaining balance: ")
-      await balance(interaction)
-    else:
-      await interaction.response.send_message("insufficient amount in your wallet")
+    return treasury, wallet
   else:
-    await interaction.response.send_message("you are not registered.")
+    raise ValueError("User is not registered")
+
+@tree.command(name="give", description="give money to another user")
+async def give(interaction, user: Member, amount: int):
+  receiverid = user.id
+  senderid = interaction.user.id
+
+  if interaction.user == user:
+    await interaction.response.send_message("trying to be smart hooman?")
+    return
+
+  sender_treasury, sender_wallet = await get_balance_data(senderid)
+  if sender_wallet >= amount:
+    sender_wallet -= amount
+    recipient_treasury, recipient_wallet = await get_balance_data(receiverid)
+    recipient_wallet += amount
+    mydb.execute("UPDATE users SET wallet = %s, treasury = %s WHERE uid = %s", (sender_wallet, sender_treasury, senderid))
+    mydb.execute("UPDATE users SET wallet = %s, treasury = %s WHERE uid = %s", (recipient_wallet, recipient_treasury, receiverid))
+    myd.commit()
+    await interaction.response.send_message(f"you successfully gave {amount} to {user.mention}")
+  else:
+    await interaction.response.send_message("you are broke lmao")
 
 keep_alive()
 
