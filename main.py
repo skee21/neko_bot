@@ -47,7 +47,7 @@ async def contact_dev(interaction, msg: str):
     await user.send(f"{sender.mention} sent you a message: {msg}")
     await interaction.response.send_message(f"Message sent to skee: {msg}")
   except discord.Forbidden:
-    await interaction.response.send_message("I can't send messages to skee atm, try his email, ```shushantskee@proton.me```")
+    await interaction.response.send_message("I can't send messages to skee atm, try his email, ```skee21@proton.me```")
 
 @tree.command(name="kick", description="Kicks a member")
 async def kick(interaction, user: Member, reason: Optional[str] = "No reason provided"):
@@ -154,6 +154,63 @@ async def profile(interaction, user: Optional[Member] = None):
   else:
     await interaction.response.send_message("User is not registered.")
 
+@tree.command(name="balance", description="shows your treasury and wallet balance")
+async def balance(interaction):
+  user = interaction.user
+  userid = user.id
+  mydb.execute("select * from users where uid = %s", (userid,))
+  result = mydb.fetchone()
+
+  if result:
+    treasury, wallet = result
+    embed = discord.Embed(title=f"Balance of {user.display_name}", color=0xe91e63)
+    embed.set_thumbnail(url=user.display_avatar)
+    embed.add_field(name="Treasury:", value= treasury, inline=False)
+    embed.add_field(name="Wallet:", value= wallet, inline=False)
+    await interaction.response.send_message(embed=embed)
+  else:
+    await interaction.response.send_message("you are not registered.")
+
+@tree.command(name="credit", description="withdraw money from treasury")
+async def credit(interaction, amount: int=1):
+  user = interaction.user
+  userid = str(user.id)
+  mydb.execute("SELECT * FROM users WHERE uid = %s", (userid,))
+  result = mydb.fetchone()
+
+  if result:
+    treasury, wallet = result
+    if treasury >= amount:
+      balance_wallet = wallet + amount
+      balance_treasury = treasury - amount
+      mydb.execute("update users set wallet = %s, treasury = %s where uid = %s", (balance_wallet, balance_treasury, userid))
+      myd.commit()
+      await interaction.response.send_message(f"withdrew {amount} from treasury. Remaining balance: ")
+      await balance(interaction)
+    else:
+      await interaction.response.send_message("insufficient amount in your wallet")
+  else:
+    await interaction.response.send_message("you are not registered.")
+
+@tree.command(name="debit", description="add money to treasury")
+async def debit(interaction, amount: int=1):
+  user = interaction.user
+  userid = user.id
+  mydb.execute("SELECT * FROM users WHERE uid = %s", (userid,))
+  result = mydb.fetchone()
+  if result:
+    treasury, wallet = result
+    if treasury >= amount:
+      balance_wallet = wallet - amount
+      balance_treasury = treasury + amount
+      mydb.execute("update users set wallet = %s, treasury = %s where uid = %s", (balance_wallet, balance_treasury, userid))
+      myd.commit()
+      await interaction.response.send_message(f"added {amount} to treasury. Remaining balance: ")
+      await balance(interaction)
+    else:
+      await interaction.response.send_message("insufficient amount in your wallet")
+  else:
+    await interaction.response.send_message("you are not registered.")
 
 keep_alive()
 
