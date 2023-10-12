@@ -86,6 +86,29 @@ async def unmute(interaction, user: Member):
   else:
     await interaction.response.send_message("gimme the necessary permissions dummy!")
 
+@tree.command(name='ban', description='bans a member')
+async def ban(interaction, user: Member, reason: Optional[str] = "no reason"):
+  if interaction.guild.me.guild_permissions.ban_members:
+    if interaction.user.guild_permissions.ban_members:
+      await interaction.response.send_message(f"{user.name} has been banned for {reason}")
+      await interaction.guild.ban(user, reason=reason, delete_message_days=1)
+    else:
+      await interaction.response.send_message(":middle_finger:")
+  else:
+    await interaction.response.send_message("give me the necessary permissions first dummy.")
+
+@tree.command(name="unban", description="unban a prisoner")
+async def unban(interaction, user: str, reason: Optional[str]):
+  user = await client.fetch_user(user)
+  if interaction.guild.me.guild_permissions.ban_members:
+    if interaction.user.guild_permissions.ban_members:
+      await interaction.guild.unban(user, reason=reason)
+      await interaction.response.send_message(f"{user.name} has been unbanned.")
+    else:
+      await interaction.response.send_message(":middle_finger:")
+  else:
+    await interaction.response.send_message("give me the necessary permissions first dummy.")
+
 @tree.command(name = "database", description= "devs only command")
 async def database(interaction):
   if interaction.user.id == 1077648874002460672:
