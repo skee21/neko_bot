@@ -79,7 +79,7 @@ async def mute(interaction, user: Member, duration: int = 1440, reason: Optional
 async def unmute(interaction, user: Member):
   if interaction.guild.me.guild_permissions.moderate_members:
     if interaction.user.guild_permissions.moderate_members:
-      await user.remove_timeout()
+      await user.edit(timed_out_until=None)
       await interaction.response.send_message(f"{user.mention} has been unmuted successfully!")
     else:
       await interaction.response.send_message(":middle_finger:")
