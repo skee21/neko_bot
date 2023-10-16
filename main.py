@@ -265,6 +265,34 @@ async def give(interaction, user: Member, amount: int):
   else:
     await interaction.response.send_message("you are broke lmao")
 
+@tree.command(name="troops", description="shows list of troops")
+async def troops(interaction):
+  mydb.execute("SELECT name FROM troops")
+  result = mydb.fetchall()
+  options = []
+  for row in result:
+      options.append(discord.SelectOption(label=row[0], value=row[0]))
+
+  menu = discord.SelectMenu(custom_id="troop_menu", options=options)
+  row = discord.ActionRow(menu)
+  await interaction.response.send_message("Select a troop:", components=[row])
+
+@client.event
+async def on_interaction_event(interaction):
+  if interaction.custom_id == "troop_menu":
+    troop_name = interaction.values[0]
+    mydb.execute("SELECT * FROM troops WHERE name = %s", (troop_name,))
+    result = mydb.fetchone()
+    name, level, atk, hp, req_level, cost, army_space = result
+    embed = discord.Embed(title=f"Troop: {name}", color=0xe91e63)
+    embed.add_field(name="Level:", value=level, inline=True)
+    embed.add_field(name="Attack:", value=atk, inline=True)
+    embed.add_field(name="Health Points:", value=hp, inline=True)
+    embed.add_field(name="Required Level:", value=req_level, inline=True)
+    embed.add_field(name="Cost:", value=cost, inline=True)
+    embed.add_field(name="Army Space:", value=army_space, inline=True)
+    await interaction.response.send_message(embed=embed)
+    
 keep_alive()
 
 my_secret = os.environ['TOKEN']
