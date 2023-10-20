@@ -265,33 +265,40 @@ async def give(interaction, user: Member, amount: int):
   else:
     await interaction.response.send_message("you are broke lmao")
 
-@tree.command(name="troops", description="shows list of troops")
+class dropdown(discord.ui.Select):
+  def __init__(self):
+    mydb.execute("SELECT name FROM troops")
+    result = mydb.fetchall()
+    options = [discord.SelectOption(label=row[0], value=row[0]) for row in result]
+
+    super().__init__(placeholder="choose an option", min_values=1, max_values=1, options=options)
+
+  async def callback(self, interaction):
+    selected_values = interaction.data['values']
+    for troop_name in selected_values:
+      mydb.execute("SELECT * FROM troops WHERE name = %s", (troop_name,))
+      result = mydb.fetchone()
+      name, level, atk, hp, req_level, cost, army_space = result
+      embed = discord.Embed(title=f"Troop: {name}", color=0xe91e63)
+      embed.add_field(name="Level:", value=level, inline=True)
+      embed.add_field(name="Atk:", value=atk, inline=True)
+      embed.add_field(name="HP:", value=hp, inline=True)
+      embed.add_field(name="Required Level:", value=req_level, inline=False)
+      embed.add_field(name="Cost:", value=cost, inline=True)
+      embed.add_field(name="Army Space:", value=army_space, inline=True)
+      await interaction.response.send_message(embed=embed)
+
+class dropdownview(discord.ui.View):
+  def __init__(self):
+    super().__init__()
+    self.add_item(dropdown())
+
+@tree.command(name="troops", description="view info on troops")
 async def troops(interaction):
-  mydb.execute("SELECT name FROM troops")
-  result = mydb.fetchall()
-  options = []
-  for row in result:
-      options.append(discord.SelectOption(label=row[0], value=row[0]))
+  view = dropdownview()
+  await interaction.response.send_message("Choose a troop to view its information:", view=view)
 
-  menu = discord.SelectMenu(custom_id="troop_menu", options=options)
-  row = discord.ActionRow(menu)
-  await interaction.response.send_message("Select a troop:", components=[row])
 
-@client.event
-async def on_interaction_event(interaction):
-  if interaction.custom_id == "troop_menu":
-    troop_name = interaction.values[0]
-    mydb.execute("SELECT * FROM troops WHERE name = %s", (troop_name,))
-    result = mydb.fetchone()
-    name, level, atk, hp, req_level, cost, army_space = result
-    embed = discord.Embed(title=f"Troop: {name}", color=0xe91e63)
-    embed.add_field(name="Level:", value=level, inline=True)
-    embed.add_field(name="Attack:", value=atk, inline=True)
-    embed.add_field(name="Health Points:", value=hp, inline=True)
-    embed.add_field(name="Required Level:", value=req_level, inline=True)
-    embed.add_field(name="Cost:", value=cost, inline=True)
-    embed.add_field(name="Army Space:", value=army_space, inline=True)
-    await interaction.response.send_message(embed=embed)
     
 keep_alive()
 
