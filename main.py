@@ -265,7 +265,7 @@ async def give(interaction, user: Member, amount: int):
   else:
     await interaction.response.send_message("you are broke lmao")
 
-class dropdown(discord.ui.Select):
+class dropdown_troops(discord.ui.Select):
   def __init__(self):
     mydb.execute("SELECT name FROM troops")
     result = mydb.fetchall()
@@ -288,17 +288,48 @@ class dropdown(discord.ui.Select):
       embed.add_field(name="Army Space:", value=army_space, inline=True)
       await interaction.response.send_message(embed=embed)
 
-class dropdownview(discord.ui.View):
+class dropdownview_troops(discord.ui.View):
   def __init__(self):
     super().__init__()
-    self.add_item(dropdown())
+    self.add_item(dropdown_troops())
 
 @tree.command(name="troops", description="view info on troops")
 async def troops(interaction):
-  view = dropdownview()
+  view = dropdownview_troops()
   await interaction.response.send_message("Choose a troop to view its information:", view=view)
 
+class dropdown_enemies(discord.ui.Select):
+  def __init__(self):
+    mydb.execute("SELECT name FROM enemies")
+    result = mydb.fetchall()
+    options = [discord.SelectOption(label=row[0], value=row[0]) for row in result]
 
+    super().__init__(placeholder="choose an option", min_values=1, max_values=1, options=options)
+
+  async def callback(self, interaction):
+    selected_values = interaction.data['values']
+    for enemy_name in selected_values:
+      mydb.execute("SELECT * FROM enemies WHERE name = %s", (enemy_name,))
+      result = mydb.fetchone()
+      name, atk, hp, req_level, cost, xp_bonus, coin_bonus = result
+      embed = discord.Embed(title=f"Troop: {name}", color=0xe91e63)
+      embed.add_field(name="Atk:", value=atk, inline=True)
+      embed.add_field(name="HP:", value=hp, inline=True)
+      embed.add_field(name="Required Level:", value=req_level, inline=False)
+      embed.add_field(name="Cost:", value=cost, inline=False)
+      embed.add_field(name="XP bonus:", value=xp_bonus, inline=True)
+      embed.add_field(name="Coin bonus:", value=coin_bonus, inline=True)
+      await interaction.response.send_message(embed=embed)
+
+class dropdownview_enemies(discord.ui.View):
+  def __init__(self):
+    super().__init__()
+    self.add_item(dropdown_enemies())
+
+@tree.command(name="enemies", description="view enemies info")
+async def enemies(interaction):
+  view = dropdownview_enemies()
+  await interaction.response.send_message("Choose a enemy to view its information:", view=view)
     
 keep_alive()
 
