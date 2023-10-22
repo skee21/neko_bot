@@ -265,6 +265,12 @@ async def give(interaction, user: Member, amount: int):
   else:
     await interaction.response.send_message("you are broke lmao")
 
+class train_button(discord.ui.Button):
+   def __init__(self):
+     super().__init__(label='Train', style=discord.ButtonStyle.green)
+   async def callback(self, interaction):
+     await interaction.response.send_message('In development, try later', ephemeral=True)
+
 class dropdown_troops(discord.ui.Select):
   def __init__(self):
     mydb.execute("SELECT name FROM troops")
@@ -286,7 +292,8 @@ class dropdown_troops(discord.ui.Select):
       embed.add_field(name="Required Level:", value=req_level, inline=False)
       embed.add_field(name="Cost:", value=cost, inline=True)
       embed.add_field(name="Army Space:", value=army_space, inline=True)
-      await interaction.response.send_message(embed=embed)
+      view = discord.ui.View().add_item(train_button())
+      await interaction.response.send_message(embed=embed, view=view)
 
 class dropdownview_troops(discord.ui.View):
   def __init__(self):
@@ -298,7 +305,7 @@ async def troops(interaction):
   view = dropdownview_troops()
   await interaction.response.send_message("Choose a troop to view its information:", view=view)
 
-class Button(discord.ui.Button):
+class fight_button(discord.ui.Button):
   def __init__(self):
     super().__init__(label='Fight', style=discord.ButtonStyle.red)
   async def callback(self, interaction):
@@ -325,7 +332,7 @@ class dropdown_enemies(discord.ui.Select):
       embed.add_field(name="Cost:", value=cost, inline=False)
       embed.add_field(name="XP bonus:", value=xp_bonus, inline=True)
       embed.add_field(name="Coin bonus:", value=coin_bonus, inline=True)
-      view = discord.ui.View().add_item(Button())
+      view = discord.ui.View().add_item(fight_button())
       await interaction.response.send_message(embed=embed, view=view)
 
 class dropdownview_enemies(discord.ui.View):
