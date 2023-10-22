@@ -298,6 +298,12 @@ async def troops(interaction):
   view = dropdownview_troops()
   await interaction.response.send_message("Choose a troop to view its information:", view=view)
 
+class Button(discord.ui.Button):
+  def __init__(self):
+    super().__init__(label='Fight', style=discord.ButtonStyle.red)
+  async def callback(self, interaction):
+    await interaction.response.send_message('In development, try later', ephemeral=True)
+
 class dropdown_enemies(discord.ui.Select):
   def __init__(self):
     mydb.execute("SELECT name FROM enemies")
@@ -320,12 +326,13 @@ class dropdown_enemies(discord.ui.Select):
       embed.add_field(name="XP bonus:", value=xp_bonus, inline=True)
       embed.add_field(name="Coin bonus:", value=coin_bonus, inline=True)
       await interaction.response.send_message(embed=embed)
+      discord.ui.View().add_item(Button())
 
 class dropdownview_enemies(discord.ui.View):
   def __init__(self):
     super().__init__()
     self.add_item(dropdown_enemies())
-
+    
 @tree.command(name="enemies", description="view enemies info")
 async def enemies(interaction):
   view = dropdownview_enemies()
