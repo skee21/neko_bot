@@ -318,15 +318,15 @@ class dropdown_enemies(discord.ui.Select):
       mydb.execute("SELECT * FROM enemies WHERE name = %s", (enemy_name,))
       result = mydb.fetchone()
       name, atk, hp, req_level, cost, xp_bonus, coin_bonus = result
-      embed = discord.Embed(title=f"Troop: {name}", color=0xe91e63)
+      embed = discord.Embed(title=f"Enemy: {name}", color=0xe91e63)
       embed.add_field(name="Atk:", value=atk, inline=True)
       embed.add_field(name="HP:", value=hp, inline=True)
       embed.add_field(name="Required Level:", value=req_level, inline=False)
       embed.add_field(name="Cost:", value=cost, inline=False)
       embed.add_field(name="XP bonus:", value=xp_bonus, inline=True)
       embed.add_field(name="Coin bonus:", value=coin_bonus, inline=True)
-      await interaction.response.send_message(embed=embed)
-      discord.ui.View().add_item(Button())
+      view = discord.ui.View().add_item(Button())
+      await interaction.response.send_message(embed=embed, view=view)
 
 class dropdownview_enemies(discord.ui.View):
   def __init__(self):
