@@ -32,7 +32,7 @@ async def on_ready():
   await client.change_presence(activity=discord.Game(name="with your mom"))
   await tree.sync()
   client.loop.create_task(ping_database())
-  print("Ready!")
+  print("The bot is ready!")
 
 @tree.command(name = "hello", description = "says hello")
 async def hello(interaction):
