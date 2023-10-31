@@ -8,6 +8,7 @@ from discord import Member
 import mysql.connector as ms
 import asyncio
 import datetime
+import spotipy
 
 intents = discord.Intents.default()
 intents.members = True
@@ -344,7 +345,24 @@ class dropdownview_enemies(discord.ui.View):
 async def enemies(interaction):
   view = dropdownview_enemies()
   await interaction.response.send_message("Choose a enemy to view its information:", view=view)
-    
+
+spot = spotipy.Spotify()
+
+@tree.command(name="play", description="connects to voice channel and plays music")
+async def play(interaction, url: str):
+  channel = interaction.user.voice_channel
+  if channel:
+    await channel.connect()
+  else:
+    await interaction.response.send_message("Trying to be funny?")
+
+  track = spot.track(url)['id']
+  player = spot.Player()
+  player.play(track)
+  
+  audio = await discord.FFmpegOpusAudio.from_pipe(player.output())
+  await client.voice_client.play(audio)
+
 keep_alive()
 
 my_secret = os.environ['TOKEN']
