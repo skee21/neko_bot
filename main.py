@@ -288,8 +288,6 @@ class dropdown_troops(discord.ui.Select):
       result = mydb.fetchone()
       name, level, atk, hp, req_level, cost, army_space = result
       embed = discord.Embed(title=f"Troop: {name}", color=0xe91e63)
-      url = 'https://discord.com/channels/1093221511801876593/1142439035550310401/1170034971646361690'
-      embed.set_thumbnail(url=url)
       embed.add_field(name="Level:", value=level, inline=True)
       embed.add_field(name="Atk:", value=atk, inline=True)
       embed.add_field(name="HP:", value=hp, inline=True)
@@ -330,8 +328,6 @@ class dropdown_enemies(discord.ui.Select):
       result = mydb.fetchone()
       name, atk, hp, req_level, cost, xp_bonus, coin_bonus = result
       embed = discord.Embed(title=f"Enemy: {name}", color=0xe91e63)
-      url = 'https://discord.com/channels/1093221511801876593/1142439035550310401/1170034971646361690'
-      embed.set_thumbnail(url=url)
       embed.add_field(name="Atk:", value=atk, inline=True)
       embed.add_field(name="HP:", value=hp, inline=True)
       embed.add_field(name="Required Level:", value=req_level, inline=False)
@@ -351,20 +347,52 @@ async def enemies(interaction):
   view = dropdownview_enemies()
   await interaction.response.send_message("Choose a enemy to view its information:", view=view)
 
+class join_button(discord.ui.Button):
+  def __init__(self):
+    super().__init__(label='Join', style=discord.ButtonStyle.green)
+  async def callback(self, interaction):
+    await interaction.response.send_message('In development, try later', ephemeral=True)
+
+class info_button(discord.ui.Button):
+  def __init__(self):
+    super().__init__(label='clan info', style=discord.ButtonStyle.purple)
+  async def callback(self, interaction):
+    await interaction.response.send_message('In development, try later', ephemeral=True)
+
+class clan_buttons(discord.ui.View):
+  def __init__(self):
+    super().__init__()
+    self.add_item(join_button())
+    self.add_item(info_button())
+
+class dropdown_clans(discord.ui.Select):
+  def __init__(self):
+    mydb.execute("SELECT * FROM clans")
+    clans_data = mydb.fetchall()
+    options = [discord.SelectOption(label=row[0], value=row[0]) for row in clans_data]
+
+    super().__init__(placeholder="choose an option", min_values=1, max_values=1, options=options)
+
+  async def callback(self, interaction):
+    selected_values = interaction.data['values']
+    for clan_info in clans_data:
+      clan_name, leader, members, rank = clan_info
+      embed = discord.Embed(title=f"Name: {clan_name}", color=0xC71585)
+      embed.add_field(name='Leader', value=f"<@{leader}>")
+      embed.add_field(name='Members', value=members)
+      embed.add_field(name='Rank', value=rank)
+      view = discord.ui.View().add_item(clan_buttons())
+      await interaction.response.send_message(embed=embed)
+
+class dropdownview_clans(discord.ui.View):
+  def __init__(self):
+    super().__init__()
+    self.add_item(dropdown_clans())
+
 @tree.command(name="clans", description="view the list of clans")
 async def clans(interaction):
-  mydb.execute("SELECT * FROM clans")
-  clans_data = mydb.fetchall()
-
-  for clan_info in clans_data:
-    clan_name, leader, members, rank = clan_info
-    embed = discord.Embed(title=f"Name: {clan_name}", color=0xC71585)
-    url = 'https://discord.com/channels/1093221511801876593/1142439035550310401/1170034971646361690'
-    embed.set_thumbnail(url=url)
-    embed.add_field(name='Leader', value=f"<@{leader}>")
-    embed.add_field(name='Members', value=members)
-    embed.add_field(name='Rank', value=rank)
-    await interaction.response.send_message(embed=embed)
+  view = dropdownview_clans()
+  await interaction.response.send_message("Choose a clan to view its information:", view=view)
 
 spot = spotipy.Spotify()
 
