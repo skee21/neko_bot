@@ -19,7 +19,8 @@ tree = app_commands.CommandTree(client)
 
 psd = os.environ['psd']
 hst = os.environ['hst']
-myd = ms.connect(host=hst, database='freedb_players', user='freedb_skeee', password=psd)
+
+myd = ms.connect(host=hst, database='freedb_players',  user='freedb_skeee', password=psd)
 mydb = myd.cursor()
 #mydb.execute("CREATE TABLE users(uid VARCHAR(20))")
 
@@ -287,6 +288,8 @@ class dropdown_troops(discord.ui.Select):
       result = mydb.fetchone()
       name, level, atk, hp, req_level, cost, army_space = result
       embed = discord.Embed(title=f"Troop: {name}", color=0xe91e63)
+      url = 'https://discord.com/channels/1093221511801876593/1142439035550310401/1170034971646361690'
+      embed.set_thumbnail(url=url)
       embed.add_field(name="Level:", value=level, inline=True)
       embed.add_field(name="Atk:", value=atk, inline=True)
       embed.add_field(name="HP:", value=hp, inline=True)
@@ -327,6 +330,8 @@ class dropdown_enemies(discord.ui.Select):
       result = mydb.fetchone()
       name, atk, hp, req_level, cost, xp_bonus, coin_bonus = result
       embed = discord.Embed(title=f"Enemy: {name}", color=0xe91e63)
+      url = 'https://discord.com/channels/1093221511801876593/1142439035550310401/1170034971646361690'
+      embed.set_thumbnail(url=url)
       embed.add_field(name="Atk:", value=atk, inline=True)
       embed.add_field(name="HP:", value=hp, inline=True)
       embed.add_field(name="Required Level:", value=req_level, inline=False)
@@ -346,11 +351,26 @@ async def enemies(interaction):
   view = dropdownview_enemies()
   await interaction.response.send_message("Choose a enemy to view its information:", view=view)
 
+@tree.command(name="clans", description="view the list of clans")
+async def clans(interaction):
+  mydb.execute("SELECT * FROM clans")
+  clans_data = mydb.fetchall()
+
+  for clan_info in clans_data:
+    clan_name, leader, members, rank = clan_info
+    embed = discord.Embed(title=f"Name: {clan_name}", color=0xC71585)
+    url = 'https://discord.com/channels/1093221511801876593/1142439035550310401/1170034971646361690'
+    embed.set_thumbnail(url=url)
+    embed.add_field(name='Leader', value=f"<@{leader}>")
+    embed.add_field(name='Members', value=members)
+    embed.add_field(name='Rank', value=rank)
+    await interaction.response.send_message(embed=embed)
+
 spot = spotipy.Spotify()
 
 @tree.command(name="play", description="connects to voice channel and plays music")
 async def play(interaction, url: str):
-  channel = interaction.user.voice_channel
+  channel = interaction.user.voice.channel
   if channel:
     await channel.connect()
   else:
@@ -361,7 +381,7 @@ async def play(interaction, url: str):
   player.play(track)
   
   audio = await discord.FFmpegOpusAudio.from_pipe(player.output())
-  await client.voice_client.play(audio)
+  await interaction.client.voice_client.play(audio)
 
 keep_alive()
 
