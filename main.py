@@ -9,6 +9,7 @@ import mysql.connector as ms
 import asyncio
 import datetime
 import spotipy
+#import logging
 
 intents = discord.Intents.default()
 intents.members = True
@@ -24,6 +25,8 @@ myd = ms.connect(host=hst, database='freedb_players',  user='freedb_skeee', pass
 mydb = myd.cursor()
 #mydb.execute("CREATE TABLE users(uid VARCHAR(20))")
 
+#logging.basicConfig(filename='discord.log', format='%(asctime)s [%(levelname)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S',level=logging.INFO)
+
 async def ping_database():
   while True:
     await asyncio.sleep(180)
@@ -36,10 +39,40 @@ async def on_ready():
   client.loop.create_task(ping_database())
   print("The bot is ready!")
 
+async def on_message(message):
+  msg = message.content.lower()
+  if message.author == client.user:
+    return
+    
+  if msg.startswith('hello'):
+    await message.channel.send(f'hello <@{message.author.id}>, you virgin')
+    await message.author.send("you lost bbg? :smirk:")
+
+client.event(on_message)
+
 @tree.command(name = "hello", description = "says hello")
 async def hello(interaction):
   await interaction.response.send_message("Hello!")
 
+@tree.command(name = "ghostping", description = "ghost pings a user")
+async def ghostping(interaction, user: Member):
+  memberid = user.id
+  await user.send("you lost bbg? :smirk:")
+  await interaction.response.send_message("pinged :thumbsup:", ephemeral=True, delete_after=3)
+  with open("pings.txt" , "a") as f:
+    f.write(f"{interaction.user.id} pinged {memberid}\n")
+
+@tree.command(name = "pings", description = "shows the pings")
+async def pings(interaction):
+  if interaction.user.id == 1077648874002460672:
+    with open("pings.txt", "r") as f:
+      lines = f.readlines()
+
+    send = lines[-5:]
+    await interaction.response.send_message("\n".join(send))
+  else:
+    await interaction.response.send_message(":middle_finger:")
+  
 @tree.command(name="contact_dev", description="send a message to skee, the developer of neko")
 async def contact_dev(interaction, msg: str):
   userid = str(1077648874002460672)
@@ -355,7 +388,7 @@ class join_button(discord.ui.Button):
 
 class info_button(discord.ui.Button):
   def __init__(self):
-    super().__init__(label='clan info', style=discord.ButtonStyle.purple)
+    super().__init__(label='clan info', style=discord.ButtonStyle.green)
   async def callback(self, interaction):
     await interaction.response.send_message('In development, try later', ephemeral=True)
 
@@ -365,7 +398,7 @@ class clan_buttons(discord.ui.View):
     self.add_item(join_button())
     self.add_item(info_button())
 
-class dropdown_clans(discord.ui.Select):
+class dropdown_clans(discord.ui.Select, discord.ui.View):
   def __init__(self):
     mydb.execute("SELECT * FROM clans")
     clans_data = mydb.fetchall()
@@ -374,20 +407,23 @@ class dropdown_clans(discord.ui.Select):
     super().__init__(placeholder="choose an option", min_values=1, max_values=1, options=options)
 
   async def callback(self, interaction):
-    selected_values = interaction.data['values']
+    mydb.execute("SELECT * FROM clans")
+    clans_data = mydb.fetchall()
+    selected_value = interaction.data['values']
     for clan_info in clans_data:
       clan_name, leader, members, rank = clan_info
       embed = discord.Embed(title=f"Name: {clan_name}", color=0xC71585)
       embed.add_field(name='Leader', value=f"<@{leader}>")
       embed.add_field(name='Members', value=members)
       embed.add_field(name='Rank', value=rank)
-      view = discord.ui.View().add_item(clan_buttons())
+      #view = discord.ui.View().add_item(clan_buttons())
       await interaction.response.send_message(embed=embed)
 
 class dropdownview_clans(discord.ui.View):
   def __init__(self):
     super().__init__()
     self.add_item(dropdown_clans())
+    self.add_item(clan_buttons())
 
 @tree.command(name="clans", description="view the list of clans")
 async def clans(interaction):
