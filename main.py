@@ -21,7 +21,7 @@ tree = app_commands.CommandTree(client)
 psd = os.environ['psd']
 hst = os.environ['hst']
 
-myd = ms.connect(host=hst, database='freedb_players',  user='freedb_skeee', password=psd)
+myd = ms.connect(host=hst, database='freedb_players',  user='freedb_skee21', password=psd)
 mydb = myd.cursor()
 #mydb.execute("CREATE TABLE users(uid VARCHAR(20))")
 
@@ -29,7 +29,7 @@ mydb = myd.cursor()
 
 async def ping_database():
   while True:
-    await asyncio.sleep(180)
+    await asyncio.sleep(60)
     myd.ping(reconnect=True)
 
 @client.event
@@ -197,7 +197,7 @@ async def profile(interaction, user: Optional[Member] = None):
     user = interaction.user
 
   userid = str(user.id)
-  mydb.execute("SELECT * FROM users WHERE UID = %s", (userid,))
+  mydb.execute("SELECT UID, level, army_space, exp FROM users WHERE UID = %s", (userid,))
   result = mydb.fetchone()
 
   if result:
@@ -409,43 +409,27 @@ class dropdown_clans(discord.ui.Select, discord.ui.View):
   async def callback(self, interaction):
     mydb.execute("SELECT * FROM clans")
     clans_data = mydb.fetchall()
-    selected_value = interaction.data['values']
+    selected_value = interaction.data['values'][0]
     for clan_info in clans_data:
       clan_name, leader, members, rank = clan_info
-      embed = discord.Embed(title=f"Name: {clan_name}", color=0xC71585)
-      embed.add_field(name='Leader', value=f"<@{leader}>")
-      embed.add_field(name='Members', value=members)
-      embed.add_field(name='Rank', value=rank)
-      #view = discord.ui.View().add_item(clan_buttons())
-      await interaction.response.send_message(embed=embed)
+      if clan_name == selected_value:
+        embed = discord.Embed(title=f"Name: {clan_name}", color=0xC71585)
+        embed.add_field(name='Leader', value=f"<@{leader}>")
+        embed.add_field(name='Members', value=members)
+        embed.add_field(name='Rank', value=rank)
+        #view = discord.ui.View().add_item(clan_buttons())
+        view = clan_buttons()
+        await interaction.response.send_message(embed=embed, view=view)
 
 class dropdownview_clans(discord.ui.View):
   def __init__(self):
     super().__init__()
     self.add_item(dropdown_clans())
-    self.add_item(clan_buttons())
-
+    
 @tree.command(name="clans", description="view the list of clans")
 async def clans(interaction):
   view = dropdownview_clans()
   await interaction.response.send_message("Choose a clan to view its information:", view=view)
-
-spot = spotipy.Spotify()
-
-@tree.command(name="play", description="connects to voice channel and plays music")
-async def play(interaction, url: str):
-  channel = interaction.user.voice.channel
-  if channel:
-    await channel.connect()
-  else:
-    await interaction.response.send_message("Trying to be funny?")
-
-  track = spot.track(url)['id']
-  player = spot.Player()
-  player.play(track)
-  
-  audio = await discord.FFmpegOpusAudio.from_pipe(player.output())
-  await interaction.client.voice_client.play(audio)
 
 keep_alive()
 
