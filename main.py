@@ -56,11 +56,23 @@ async def hello(interaction):
 
 @tree.command(name = "ghostping", description = "ghost pings a user")
 async def ghostping(interaction, user: Member):
-  memberid = user.id
-  await user.send("you lost bbg? :smirk:")
-  await interaction.response.send_message("pinged :thumbsup:", ephemeral=True, delete_after=3)
-  with open("pings.txt" , "a") as f:
-    f.write(f"{interaction.user.id} pinged {memberid}\n")
+  '''cooldown = app_commands.Cooldown(1, 600)
+  if not cooldown.update_rate_limit():
+    tokens = cooldown.get_tokens(current=1)
+    if tokens < 0:
+      await interaction.response.send_message("wait 10 mins before using this command again")
+    return'''
+  
+  try:
+    memberid = user.id
+    await user.send("you lost bbg? :smirk:")
+    await interaction.response.send_message("pinged :thumbsup:", ephemeral=True, delete_after=3)
+    with open("pings.txt" , "a") as f:
+      f.write(f"{interaction.user.id} pinged {memberid}\n")
+  except discord.Forbidden:
+    await interaction.response.send_message("user has dms disabled :x:", ephemeral=True, delete_after=3)
+  except discord.HTTPException as e:
+    await interaction.response.send_message(f"error: {e}", ephemeral=True, delete_after=3)
 
 @tree.command(name = "pings", description = "shows the pings")
 async def pings(interaction):
@@ -82,7 +94,7 @@ async def contact_dev(interaction, msg: str):
     await user.send(f"{sender.mention} sent you a message: {msg}")
     await interaction.response.send_message(f"Message sent to skee: {msg}")
   except discord.Forbidden:
-    await interaction.response.send_message("I can't send messages to skee atm, try his email, ```skee21@proton.me```")
+    await interaction.response.send_message("I can't send messages to skee atm, try his email, `skee21@proton.me`")
 
 @tree.command(name="kick", description="Kicks a member")
 async def kick(interaction, user: Member, reason: Optional[str] = "No reason provided"):
@@ -187,9 +199,17 @@ async def avatar(interaction, user: Optional[Member] = None):
     embed.set_image(url=user.display_avatar)
     await interaction.response.send_message(embed=embed)
   else:
+    av = user.avatar.url
     embed = discord.Embed(title=f"pfp of {user.display_name}")
-    embed.set_image(url=user.display_avatar)
+    embed.set_image(url=av)
     await interaction.response.send_message(embed=embed)
+
+@tree.command(name="server_avatar", description="shows the avatar of server")
+async def server_avatar(interaction):
+  guild = interaction.guild
+  embed = discord.Embed(title=f"Server PFP of {guild.name}")
+  embed.set_image(url=guild.icon.url)
+  await interaction.response.send_message(embed=embed)
 
 @tree.command(name="profile", description="shows warrior profile")
 async def profile(interaction, user: Optional[Member] = None):
@@ -197,17 +217,17 @@ async def profile(interaction, user: Optional[Member] = None):
     user = interaction.user
 
   userid = str(user.id)
-  mydb.execute("SELECT UID, level, army_space, exp FROM users WHERE UID = %s", (userid,))
+  mydb.execute("SELECT UID, level, army_space, exp, clan FROM users WHERE UID = %s", (userid,))
   result = mydb.fetchone()
 
   if result:
-    uid, level, army_space, exp = result
+    uid, level, army_space, exp, clan = result
     embed = discord.Embed(title=f"Profile of {user.display_name}", color=0xe91e63)
     embed.set_thumbnail(url=user.display_avatar)
     embed.add_field(name="Level:", value=level, inline=True)
     embed.add_field(name="XP:", value=f"{exp}/100", inline=True)
     embed.add_field(name="Army Space:", value=army_space, inline=False)
-    embed.add_field(name="Clan:", value="coming soon", inline=False)
+    embed.add_field(name="Clan:", value=clan, inline=False)
     await interaction.response.send_message(embed=embed)
   else:
     await interaction.response.send_message("User is not registered.")
@@ -384,7 +404,20 @@ class join_button(discord.ui.Button):
   def __init__(self):
     super().__init__(label='Join', style=discord.ButtonStyle.green)
   async def callback(self, interaction):
-    await interaction.response.send_message('In development, try later', ephemeral=True)
+    userid = interaction.user.id
+    clan_name = interaction.data['values'][0]
+    mydb.execute("SELECT uid, clan FROM users WHERE userid = %s", (userid,))
+    result = mydb.fetchall()
+    if result:
+      current_clan = result['clan']
+      if current_clan:
+        await interaction.response.send_message(f"You are already in a clan")
+      else:
+        mydb.execute("UPDATE users SET clan = %s WHERE userid = %s", (clan_name, userid))
+        mydb.commit()
+        await interaction.response.send_message(f"You have joined the clan: {clan_name}", ephemeral=True)
+    else:
+      await interaction.response.send_message("You are not registered. Please use /register to register")
 
 class info_button(discord.ui.Button):
   def __init__(self):
